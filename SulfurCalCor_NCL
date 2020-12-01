@@ -1,0 +1,210 @@
+begin
+
+pathS="/glade/p/univ/urtg0006/OVERSHOOT/originalfiles/SO4/"
+case1="b.e21.BWSSP585cmip6.f09_g17.CMIP6-SSP5-8.5-WACCM.001"
+case2="b.e21.BWSSP534oscmip6.f09_g17.CMIP6-SSP5-3.4OS-WACCM.001"
+case3="b.e21.BWSSP585cmip6.f09_g17.CMIP6-SSP5-8.5-WACCM.feedback.15C.001"
+case4="b.e21.BWSSP534oscmip6.f09_g17.CMIP6-SSP5-3.4OS-WACCM.feedback.15C.001"
+case5="b.e21.BWSSP534oscmip6.f09_g17.CMIP6-SSP5-3.4OS-WACCM.feedback.20C.001"
+
+fS1=addfile(pathS+case1+".cam.h0zm.BURDENSO4dn.201501-210012.nc","r")
+fS2=addfile(pathS+case2+".cam.h0zm.BURDENSO4dn.204001-210012.nc","r")
+;fS3=addfile(pathS+case3+"_2019-2100_yield_latlon_CLM5mask_6crops.nc","r")
+fS4=addfile(pathS+case4+".cam.h0zm.BURDENSO4dn.204001-210012.nc","r")
+fS5=addfile(pathS+case5+".cam.h0zm.BURDENSO4dn.203301-209912.nc","r")
+
+Ere = 6.3712e6         ; radius of earth,m
+    pi = 3.14159265
+
+SO5=fS5->BURDENSO4dn ;kg/m2
+SO1=fS1->BURDENSO4dn
+SO2=fS2->BURDENSO4dn
+;SO3=fS3->yield
+SO4=fS4->BURDENSO4dn
+lat=fS1->lat
+nlat=dimsizes(lat)
+gw1=NormCosWgtGlobe(lat)
+Sareas=new((/nlat/),float)
+do la=0,nlat-1
+areaS=doubletofloat(gw1(la)*(2.*pi)*Ere^2.)  ;m2
+Sareas(la)=areaS
+end do
+
+areaS1=conform_dims(dimsizes(SO1),Sareas,(/1/))
+areaS2=conform_dims(dimsizes(SO2),Sareas,(/1/))
+;areaS3=conform_dims(dimsizes(SO3),Sareas,(/1/))
+areaS4=conform_dims(dimsizes(SO4),Sareas,(/1/))
+areaS5=conform_dims(dimsizes(SO5),Sareas,(/1/))
+
+S1=SO1*areaS1*1e-9 ; Tg/yr
+S2=SO2*areaS2*1e-9 ; Tg/yr
+;S3=SO3*areaS3*1e-9 ; Tg/yr
+S4=SO4*areaS4*1e-9 ; Tg/yr
+S5=SO5*areaS5*1e-9 ; Tg/yr
+
+S1g=dim_sum_n_Wrap(S1,1)
+S2g=dim_sum_n_Wrap(S2,1)
+;S3g=dim_sum_n_Wrap(S3,1)
+S4g=dim_sum_n_Wrap(S4,1)
+S5g=dim_sum_n_Wrap(S5,1)
+
+S1ga=month_to_annual(S1g,1)
+S2ga=month_to_annual(S2g,1)
+S4ga=month_to_annual(S4g,1)
+S5ga=month_to_annual(S5g,1)
+totalSO=new((/5,86/),float)
+totalSO(0,:)=S1ga
+totalSO(1,25:85)=S2ga
+;totalSO(2,4:85)=S3ga
+totalSO(3,25:85)=S4ga
+totalSO(4,18:84)=S5ga
+
+asciiwrite("OSSO4.txt",totalSO)
+
+path="/glade/p/univ/urtg0006/OVERSHOOT/files/"
+f1=addfile(path+case1+"_2015-2100_yield_latlon_CLM5mask_6crops.nc","r")
+f2=addfile(path+case2+"_2040-2100_yield_latlon_CLM5mask_6crops.nc","r")
+f3=addfile(path+case3+"_2019-2100_yield_latlon_CLM5mask_6crops.nc","r")
+f4=addfile(path+case4+"_2040-2100_yield_latlon_CLM5mask_6crops.nc","r")
+f5=addfile(path+case5+"_2033-2099_yield_latlon_CLM5mask_6crops.nc","r")
+
+NPP5=f5->yield
+NPP1=f1->yield
+NPP2=f2->yield
+NPP3=f3->yield
+NPP4=f4->yield
+lon=f1->lon
+area=f1->areas
+area1=conform_dims(dimsizes(NPP1),area,(/1,2,3/))
+area2=conform_dims(dimsizes(NPP2),area,(/1,2,3/))
+area3=conform_dims(dimsizes(NPP3),area,(/1,2,3/))
+area4=conform_dims(dimsizes(NPP4),area,(/1,2,3/))
+area5=conform_dims(dimsizes(NPP5),area,(/1,2,3/))
+
+P1=NPP1*area1
+P2=NPP2*area2
+P3=NPP3*area3
+P4=NPP4*area4
+P5=NPP5*area5
+gP1=dim_sum_n_Wrap(dim_sum_n_Wrap(P1,2),2)
+gP2=dim_sum_n_Wrap(dim_sum_n_Wrap(P2,2),2)
+gP3=dim_sum_n_Wrap(dim_sum_n_Wrap(P3,2),2)
+gP4=dim_sum_n_Wrap(dim_sum_n_Wrap(P4,2),2)
+gP5=dim_sum_n_Wrap(dim_sum_n_Wrap(P5,2),2)
+
+total=new((/5,86/),float)
+total(0,:)=gP1(:,0)*356*10000+gP1(:,3)*280*10000+gP1(:,6)*335*10000+gP1(:,9)*334*10000
+total(1,25:85)=gP2(:,0)*356*10000+gP2(:,3)*280*10000+gP2(:,6)*335*10000+gP2(:,9)*334*10000
+total(2,4:85)=gP3(:,0)*356*10000+gP3(:,3)*280*10000+gP3(:,6)*335*10000+gP3(:,9)*334*10000
+total(3,25:85)=gP4(:,0)*356*10000+gP4(:,3)*280*10000+gP4(:,6)*335*10000+gP4(:,9)*334*10000
+total(4,18:84)=gP5(:,0)*356*10000+gP5(:,3)*280*10000+gP5(:,6)*335*10000+gP5(:,9)*334*10000
+
+;----------------------------------------------------------------------
+; Function to attach a labelbar outside of an XY plot
+;----------------------------------------------------------------------
+function attach_labelbar(wks,plot,labels,colors)
+local lbres, vph, vpw, nboxes
+begin
+  nboxes = dimsizes(labels)
+  getvalues plot                      ; Get plot size for use in
+    "vpHeightF" : vph                 ; creating labelbar.
+    "vpWidthF"  : vpw
+  end getvalues
+
+  lbres                    = True          ; labelbar only resources
+  lbres@lbAutoManage       = False          ; Necessary to control sizes
+  lbres@lbPerimOn          = False
+  lbres@vpWidthF           = 0.2 * vpw     ; labelbar width
+  lbres@vpHeightF          = vph           ; labelbar height
+  lbres@lbFillColors       = colors
+  lbres@lbMonoFillPattern  = True          ; Solid fill pattern
+  lbres@lbLabelFontHeightF = 0.02          ; font height. default is small
+  lbres@lbLabelJust        = "CenterLeft"  ; left justify labels
+  lbres@lbBoxLinesOn       = False
+
+  lbid = gsn_create_labelbar(wks,nboxes,labels,lbres)
+;
+; Now, create some annotation resources indicating how we want to
+; attach the labelbar to the plot.
+;
+  amres                = True
+  amres@amParallelPosF = 0.65     ; Move away from plot
+  annoid = gsn_add_annotation(plot,lbid,amres)
+
+  return(annoid)
+end
+;--------------------------------------------------------------------
+;---------------------------------------------------------------------
+
+title=(/"SSP5-8.5","SSP5-3.4-OS","SSP5-8.5-geo-1.5","SSP5-3.4-OS-geo-1.5","SSP5-3.4-OS-geo-2"/)
+do c=0,4,1
+data=new((/2,86/),float)
+if c.le.2 then
+data(0,:)=totalSO(c,:)/3
+end if
+if c.eq.3.or.c.eq.4 then
+data(0,:)=(totalSO(c,:)-totalSO(1,:))/3
+end if
+data(1,:)=total(c,:)*1e-15
+
+colors=ispan(2,256,6)
+print(colors)
+labels=new(43,string)
+printVarSummary(labels)
+printVarSummary(labels(0::6));data(a:b:c) - data can be thinned by specifiying a stride in the subscript so that every other, or every third... is selected.
+labels(0::6)=(/2015,2027,2039,2051,2063,2075,2087,2099/)
+labels(3::6)=""
+wks=gsn_open_wks("pdf","SO4-calorie-"+title(c))
+square=NhlNewMarker(wks, "Z", 37, 0.0, 0.0, 1., 1., 0.);wks,marker_strings,font_num,xoffset,yoffset,aspect_ratio,size,angle
+;---Create a scatter plot
+  res                    = True
+  res@gsnDraw            = False        ; Don't draw plot or advance
+  res@gsnFrame           = False        ; frame. Will do this later.
+res@gsnPaperOrientation="landscape"
+  res@tiMainString       = "crop calorie - sulfur burden ("+title(c)+")"
+res@tiYAxisString="Global Sulfur Burden (TgS)"
+res@tiXAxisString="Global Crop Calories (10~S~15~N~ kcal/yr)"
+res@trXMaxF=14.
+res@trXMinF=6.
+if(c.lt.2) then
+res@trYMaxF=1.
+res@trYMinF=0.5
+else
+res@trYMaxF=10.
+res@trYMinF=0.
+end if
+res@tmYLPrecision=2
+res@tmXBPrecision=2
+res@tmXBLabelFontThicknessF           = 1.5 ;===================================new. thickness of numbers on X
+res@tmYLLabelFontThicknessF           = 1.5;    ============================================new. thickness of numbers on Y
+res@tmBorderThicknessF=1.5
+res@tmXBMajorThicknessF=1.5
+res@tmXTMajorThicknessF=1.5
+res@tmYLMajorThicknessF=1.5
+res@tmYRMajorThicknessF=1.5
+res@tiXAxisFontThicknessF=1.5 ; ===========================new, thickness of X title
+res@tiYAxisFontThicknessF=1.5 ; ===========================new, thickness of Y title
+;---Set some marker resources
+  res@xyMarkLineMode     = "Markers"
+  res@xyMarkerThicknessF = 2.5
+  res@xyMarkerColors     = colors(0)
+  res@xyMarker           = square     ; this is a filled square
+
+  overlays = new(42,graphic)
+  plot = gsn_csm_xy (wks,data(1,0:1),data(0,0:1),res)
+do j=0,41
+;    print(data(1,(j+1)*2:(j+1)*2+1))
+;    print(data(0,(j+1)*2:(j+1)*2+1))
+res@xyMarkerColors     = colors(j)
+    overlays(j) = gsn_csm_xy (wks,data(1,(j+1)*2:(j+1)*2+1),data(0,(j+1)*2:(j+1)*2+1),res)
+    overlay(plot,overlays(j))
+  end do
+
+;---Attach a labelbar
+  labelbar = attach_labelbar(wks,plot,labels,colors)
+
+;---This call resizes the plot and draws it
+  maximize_output(wks,False)
+
+end do
+end
